@@ -144,6 +144,9 @@ async def reset_password(
     db: AsyncSession = Depends(get_db),
     admin: AdminUser = Depends(get_current_admin)
 ):
+    import secrets
+    import string
+    
     if not admin.is_superuser:
         raise HTTPException(status_code=403, detail="Only superusers can reset passwords")
     
@@ -153,10 +156,13 @@ async def reset_password(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    user.hashed_password = get_password_hash("admin")
+    # Generate secure random password
+    alphabet = string.ascii_letters + string.digits
+    new_password = ''.join(secrets.choice(alphabet) for _ in range(16))
+    user.hashed_password = get_password_hash(new_password)
     await db.commit()
     
-    return {"message": f"Password reset to default for user {user.username}"}
+    return {"message": f"Password reset for user {user.username}", "new_password": new_password}
 
 
 settings_router = router

@@ -62,27 +62,24 @@ def timeout_handler(signum, frame):
     raise RegexTimeout("Regex execution timeout")
 
 class RegexGuard:
-    DEFAULT_TIMEOUT = 2.0 # Reduced timeout for production
+    DEFAULT_TIMEOUT = 2.0
 
     @classmethod
     def search(cls, pattern: str, text: str, flags: int = re.IGNORECASE | re.DOTALL, timeout: float = None) -> List:
         timeout = timeout or cls.DEFAULT_TIMEOUT
-        
-        # signal only works in main thread
-        is_main_thread = threading.current_thread() is threading.main_thread()
-        
-        if is_main_thread and hasattr(signal, 'SIGALRM'):
-            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(int(timeout) if timeout >= 1 else 1)
-            try:
-                return list(re.finditer(pattern, text, flags))
-            finally:
-                signal.alarm(0)
-                signal.signal(signal.SIGALRM, old_handler)
-        else:
-            # Fallback for threads or non-Unix: no timeout enforcement
-            # In a production WAF, we'd ideally use a regex engine with native timeout support (like re2)
+
+        if not pattern or not text:
+            return []
+
+        try:
+            compiled = re.compile(pattern, flags)
             return list(re.finditer(pattern, text, flags))
+        except re.error as e:
+            logger.error(f"Invalid regex pattern: {e}")
+            return []
+        except RegexTimeout:
+            logger.warning(f"Regex timeout for pattern: {pattern}")
+            return []
 
 class BaseDetector:
     def __init__(self, attack_type: AttackType = AttackType.UNKNOWN):

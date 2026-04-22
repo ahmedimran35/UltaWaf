@@ -12,11 +12,12 @@ from backend.models.database import RequestLog, AdminUser
 router = APIRouter()
 
 
-# No auth - for development
+def get_current_admin():
+    from backend.main import get_current_admin as gca
+    return gca
+
+
 async def skip_auth():
-    return None
-    if creds:
-        return await gca(creds)
     return None
 
 
@@ -55,7 +56,7 @@ async def get_logs(
     end_date: Optional[datetime] = None,
     search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    admin: AdminUser = Depends(lambda: __import__('backend.main', fromlist=['get_current_admin']).get_current_admin)
+    admin: AdminUser = Depends(get_current_admin)
 ):
     query = select(RequestLog)
 

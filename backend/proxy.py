@@ -68,6 +68,17 @@ class ReverseProxy:
             target_path = self._resolve_path(path)
             target_url = urljoin(self.target_url, target_path)
 
+            # SSRF Protection - validate URL before proxying
+            if not self._is_valid_url(target_url):
+                logger.warning(f"SSRF attempt blocked: {target_url}")
+                self.pool.failed_requests += 1
+                return {
+                    "status": 403,
+                    "headers": {},
+                    "body": b"Forbidden",
+                    "error": "SSRF protection: invalid target URL"
+                }
+
             request_headers = self._prepare_headers(headers)
 
             response = await self.client.request(

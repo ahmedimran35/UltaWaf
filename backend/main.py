@@ -121,9 +121,9 @@ security = HTTPBearer()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS if settings.CORS_ORIGINS else ["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -205,8 +205,9 @@ async def waf_middleware(request: Request, call_next):
     api_shield_enabled = await get_gui_setting("api_shield_enabled", settings.API_SHIELD_ENABLED)
     siem_logging_enabled = await get_gui_setting("siem_logging_enabled", True)
 
-    # Skip WAF for admin API, docs, etc.
-    if path.startswith("/api/admin") or path.startswith("/docs") or path.startswith("/openapi"):
+    # Skip WAF for admin API, docs, etc. - use exact path match to prevent bypass
+    skip_paths = {"/api/admin", "/docs", "/openapi", "/health", "/ws", "/"}
+    if any(path == p or path.startswith(p + "/") for p in skip_paths):
         return await call_next(request)
 
     # 2. API Shielding - robust content-type validation

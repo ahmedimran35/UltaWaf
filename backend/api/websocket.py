@@ -4,22 +4,49 @@ import asyncio
 import logging
 import random
 import httpx
+import time
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 MAX_CONNECTIONS = 1000
+MAX_MESSAGES_PER_SECOND = 50
+MAX_MESSAGES_PER_MINUTE = 500
+
+class MessageRateLimiter:
+    def __init__(self):
+        self.message_counts = defaultdict(list)
+        self.default_limits = {"second": MAX_MESSAGES_PER_SECOND, "minute": MAX_MESSAGES_PER_MINUTE}
+
+    def is_allowed(self, client_id: str) -> bool:
+        now = time.time()
+        self.message_counts[client_id] = [
+            t for t in self.message_counts[client_id]
+            if now - t < 60
+        ]
+        count_second = sum(1 for t in self.message_counts[client_id] if now - t < 1)
+        count_minute = len(self.message_counts[client_id])
+        if count_second >= self.default_limits["second"] or count_minute >= self.default_limits["minute"]:
+            return False
+        self.message_counts[client_id].append(now)
+        return True
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
         self.global_feed_task = None
         self.heartbeat_task = None
+        self.rate_limiter = MessageRateLimiter()
 
     async def connect(self, websocket: WebSocket, client_id: str) -> bool:
         if len(self.active_connections) >= MAX_CONNECTIONS:
             logger.warning(f"WebSocket connection rejected: max connections ({MAX_CONNECTIONS}) reached")
+            return False
+        if not self.rate_limiter.is_allowed(client_id):
+            logger.warning(f"WebSocket rate limit exceeded: {client_id}")
+            await websocket.close(code=1008, reason="Rate limit exceeded")
             return False
         await websocket.accept()
         self.active_connections[client_id] = websocket
