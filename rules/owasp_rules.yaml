@@ -1,0 +1,300 @@
+rules:
+  - id: 1
+    name: SQL Injection - Basic Detection
+    description: Detects basic SQL injection attempts
+    rule_type: sqli
+    pattern: (\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION)\b)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 100
+
+  - id: 2
+    name: SQL Injection - UNION Attack
+    description: Detects UNION-based SQL injection
+    rule_type: sqli
+    pattern: (\bUNION\s+ALL\s+SELECT\b)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 3
+    name: SQL Injection - Comment/Separator
+    description: Detects SQL comment characters and separators
+    rule_type: sqli
+    pattern: (--|;|/\*|\*/|@@)
+    pattern_type: regex
+    severity: medium
+    action: block
+    priority: 90
+
+  - id: 4
+    name: SQL Injection - Boolean Tautology
+    description: Detects boolean-based SQL injection
+    rule_type: sqli
+    pattern: (\bOR\b.*\b=\b|\bAND\b.*\b=\b)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 5
+    name: SQL Injection - Time-based
+    description: Detects time-based blind SQL injection
+    rule_type: sqli
+    pattern: (WAITFOR\s+DELAY|pg_sleep|BENCHMARK|SLEEP\s*\()
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 95
+
+  - id: 6
+    name: XSS - Script Tag
+    description: Detects script tag injection attempts
+    rule_type: xss
+    pattern: (<script[^>]*>.*?</script>)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 7
+    name: XSS - JavaScript Protocol
+    description: Detects javascript: protocol usage
+    rule_type: xss
+    pattern: (javascript:)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 8
+    name: XSS - Event Handler
+    description: Detects HTML event handler usage
+    rule_type: xss
+    pattern: (on\w+\s*=)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 95
+
+  - id: 9
+    name: XSS - IMG Onerror
+    description: Detects img onerror attack vector
+    rule_type: xss
+    pattern: (<img[^>]*src\s*=\s*["']?x)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 10
+    name: XSS - SVG Onload
+    description: Detects SVG onload attack vector
+    rule_type: xss
+    pattern: (<svg[^>]*onload[^>]*>)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 11
+    name: XSS - Data URI
+    description: Detects data URI usage
+    rule_type: xss
+    pattern: (data:text/html)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 90
+
+  - id: 12
+    name: LFI - Path Traversal
+    description: Detects path traversal attempts
+    rule_type: lfi
+    pattern: (\.\.[\/\\])
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 100
+
+  - id: 13
+    name: LFI - Encoded Path Traversal
+    description: Detects URL-encoded path traversal
+    rule_type: lfi
+    pattern: (\.\.%2[fF]|%2e%2e%2f)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 100
+
+  - id: 14
+    name: LFI - /etc/passwd
+    description: Detects /etc/passwd access attempts
+    rule_type: lfi
+    pattern: (etc/passwd)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 15
+    name: LFI - /etc/shadow
+    description: Detects /etc/shadow access attempts
+    rule_type: lfi
+    pattern: (etc/shadow)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 16
+    name: LFI - PHP Filter
+    description: Detects PHP filter wrapper usage
+    rule_type: lfi
+    pattern: (php:\/\/filter)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 90
+
+  - id: 17
+    name: RFI - HTTP URL
+    description: Detects remote file inclusion attempts
+    rule_type: rfi
+    pattern: (http(s)?:\/\/[^\s<>"']+)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 95
+
+  - id: 18
+    name: Command Injection - Separator
+    description: Detects command separator characters
+    rule_type: cmdi
+    pattern: ([;&|`$])
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 90
+
+  - id: 19
+    name: Command Injection - Pipe
+    description: Detects pipe-based command injection
+    rule_type: cmdi
+    pattern: (\|\s*\w+)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 95
+
+  - id: 20
+    name: Command Injection - Variable
+    description: Detects environment variable access
+    rule_type: cmdi
+    pattern: (\$\{?\w+\}?)
+    pattern_type: regex
+    severity: medium
+    action: log
+    priority: 70
+
+  - id: 21
+    name: XXE - DOCTYPE
+    description: Detects XML DOCTYPE declarations
+    rule_type: xxe
+    pattern: (<!DOCTYPE[^>]*\[)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 22
+    name: XXE - External Entity
+    description: Detects external entity declarations
+    rule_type: xxe
+    pattern: (<!ENTITY\s+\w+\s+(SYSTEM|PUBLIC))
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 23
+    name: XXE - File Protocol
+    description: Detects file protocol in XML
+    rule_type: xxe
+    pattern: (SYSTEM\s+["']file:)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 24
+    name: SSRF - Localhost
+    description: Detects localhost access attempts
+    rule_type: ssrf
+    pattern: (http(s)?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|::1))
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 25
+    name: SSRF - Cloud Metadata
+    description: Detects cloud metadata service access
+    rule_type: ssrf
+    pattern: (http(s)?:\/\/169\.254\.169\.254)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 26
+    name: SSRF - Gopher Protocol
+    description: Detects gopher protocol usage
+    rule_type: ssrf
+    pattern: (gopher:\/\/)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 27
+    name: HTTP Smuggling - Chunked TE
+    description: Detects chunked transfer encoding
+    rule_type: http_smuggling
+    pattern: (Transfer-Encoding:\s*chunked)
+    pattern_type: regex
+    severity: high
+    action: log
+    priority: 80
+
+  - id: 28
+    name: HTTP Smuggling - CL.CL
+    description: Detects duplicate Content-Length headers
+    rule_type: http_smuggling
+    pattern: (Content-Length:\s*\d+.*Content-Length:)
+    pattern_type: regex
+    severity: critical
+    action: block
+    priority: 100
+
+  - id: 29
+    name: Path Traversal - Encoded
+    description: Detects encoded path traversal
+    rule_type: path_traversal
+    pattern: (%2e%2e%2f|%252e%252e%252f)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 95
+
+  - id: 30
+    name: Path Traversal - Unicode
+    description: Detects unicode path traversal
+    rule_type: path_traversal
+    pattern: (%c0%af|%c1%9c)
+    pattern_type: regex
+    severity: high
+    action: block
+    priority: 95
