@@ -109,4 +109,54 @@ async def update_settings(
     return {"message": "Settings updated", "data": settings_data.dict()}
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+
+@router.post("/change-password")
+async def change_password(
+    data: PasswordChange,
+    db: AsyncSession = Depends(get_db),
+    admin: AdminUser = Depends(get_current_admin)
+):
+    from backend.utils.auth import verify_password, get_password_hash
+    
+    if data.new_password != data.confirm_password:
+        raise HTTPException(status_code=400, detail="New passwords do not match")
+    
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    if not verify_password(data.current_password, admin.hashed_password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    
+    admin.hashed_password = get_password_hash(data.new_password)
+    await db.commit()
+    
+    return {"message": "Password changed successfully"}
+
+
+@router.post("/reset-password/{user_id}")
+async def reset_password(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: AdminUser = Depends(get_current_admin)
+):
+    if not admin.is_superuser:
+        raise HTTPException(status_code=403, detail="Only superusers can reset passwords")
+    
+    result = await db.execute(select(AdminUser).where(AdminUser.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.hashed_password = get_password_hash("admin")
+    await db.commit()
+    
+    return {"message": f"Password reset to default for user {user.username}"}
+
+
 settings_router = router

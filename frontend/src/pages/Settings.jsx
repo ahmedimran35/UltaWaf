@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Save, RefreshCw, Shield, Zap, Brain, Lock, MousePointer2, Code2, Database } from 'lucide-react'
+import { Save, RefreshCw, Shield, Zap, Brain, Lock, MousePointer2, Code2, Database, KeyRound } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -14,6 +14,14 @@ function Settings() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  })
+  const [passwordMsg, setPasswordMsg] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     fetchSettings()
@@ -53,6 +61,29 @@ function Settings() {
       alert('Error during parameter synchronization.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const changePassword = async () => {
+    setPasswordMsg('')
+    setPasswordError('')
+    if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+      setPasswordError('All password fields are required')
+      return
+    }
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+    setChangingPassword(true)
+    try {
+      await axios.post(`${API_URL}/api/admin/settings/change-password`, passwordData)
+      setPasswordMsg('Password changed successfully')
+      setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
+    } catch (err) {
+      setPasswordError(err.response?.data?.detail || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -242,6 +273,54 @@ function Settings() {
                 checked={settings?.ml_enabled}
                 onChange={(v) => setSettings({ ...settings, ml_enabled: v })}
               />
+            </div>
+          </div>
+
+          <div className="card p-8 group border-t-4 border-red-500 shadow-lg">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20">
+                <Lock className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight uppercase">Credentials</h2>
+                <p className="text-[10px] text-gray-400 dark:text-dark-500 font-bold uppercase tracking-widest">Password Management</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="password"
+                className="input font-black text-sm"
+                placeholder="CURRENT PASSWORD"
+                value={passwordData.current_password}
+                onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+              />
+              <input
+                type="password"
+                className="input font-black text-sm"
+                placeholder="NEW PASSWORD"
+                value={passwordData.new_password}
+                onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+              />
+              <input
+                type="password"
+                className="input font-black text-sm"
+                placeholder="CONFIRM NEW PASSWORD"
+                value={passwordData.confirm_password}
+                onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+              />
+              {passwordMsg && (
+                <p className="text-green-600 text-xs font-bold">{passwordMsg}</p>
+              )}
+              {passwordError && (
+                <p className="text-red-600 text-xs font-bold">{passwordError}</p>
+              )}
+              <button
+                onClick={changePassword}
+                disabled={changingPassword}
+                className="btn btn-primary w-full py-3"
+              >
+                {changingPassword ? 'CHANGING...' : 'CHANGE PASSWORD'}
+              </button>
             </div>
           </div>
         </div>
